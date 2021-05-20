@@ -40,7 +40,10 @@ if args.filter:
     k, v = args.filter.split("=")
     original_length = len(patients)
     try:
-        patients = patients[patients[k] == v]
+        if k == "Node Fields":
+            patients = patients[patients[k].str.contains(v)]
+        else:
+            patients = patients[patients[k] == v]
     except KeyError:
         logging.error(f"Column {k} not known: possible columns to choose from: {sorted(patients.columns.tolist())}")
         exit(1)
