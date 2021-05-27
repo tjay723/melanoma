@@ -39,17 +39,19 @@ patients = patients.join(followup, rsuffix='_followup')
 original_patients = patients.copy()
 
 if args.filter:
-    k, v = args.filter.split("=")
-    original_length = len(patients)
-    try:
-        if k == "Node Fields":
-            patients = patients[patients[k].str.contains(rf'\b{v}\b')]
-        else:
-            patients = patients[patients[k] == v]
-    except KeyError:
-        logging.error(f"Column {k} not known: possible columns to choose from: {sorted(patients.columns.tolist())}")
-        exit(1)
-    logging.info(f"After applying filter {args.filter}, reduced dataset size from {original_length} to {len(patients)}")
+    filters = args.filter.split("&")
+    for filter in filters:
+        k, v = filter.split("=")
+        original_length = len(patients)
+        try:
+            if k == "Node Fields":
+                patients = patients[patients[k].str.contains(rf'\b{v}\b')]
+            else:
+                patients = patients[patients[k] == v]
+        except KeyError:
+            logging.error(f"Column {k} not known: possible columns to choose from: {sorted(patients.columns.tolist())}")
+            exit(1)
+        logging.info(f"After applying filter {filter}, reduced dataset size from {original_length} to {len(patients)}")
 
 key = ["Map", "X", "Y"]
 if args.normalise:
