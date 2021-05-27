@@ -41,7 +41,7 @@ if args.filter:
     original_length = len(patients)
     try:
         if k == "Node Fields":
-            patients = patients[patients[k].str.contains(v)]
+            patients = patients[patients[k].str.contains(rf'\b{v}\b')]
         else:
             patients = patients[patients[k] == v]
     except KeyError:
