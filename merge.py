@@ -12,9 +12,10 @@ logging.basicConfig(level=logging.DEBUG)
 start = time.time()
 
 parser = argparse.ArgumentParser(description="Melanoma data tool")
-parser.add_argument('-f', '--filter', help='which columns and values to filter by')
+parser.add_argument('-f', '--filter', help='Which columns and values to filter by')
 parser.add_argument('-o', '--outfile', help='Output file', default="out.ipdata")
 parser.add_argument('-of', '--output-format', help='Output format', choices=["ipdata", "exdata"], default="ipdata")
+parser.add_argument('-n', '--normalise', help='Calculate normalised frequency as percentage (divide number of patients with drainage to specified node field by total number of patients at site)', action='store_true')
 args = parser.parse_args()
 
 # Set correct file extensions
@@ -35,6 +36,7 @@ logging.info(f"Data loaded in {round(time.time() - start, 4)}s")
 
 # Merge followup data with main patient data
 patients = patients.join(followup, rsuffix='_followup')
+original_patients = patients.copy()
 
 if args.filter:
     k, v = args.filter.split("=")
@@ -49,11 +51,20 @@ if args.filter:
         exit(1)
     logging.info(f"After applying filter {args.filter}, reduced dataset size from {original_length} to {len(patients)}")
 
-grouped_patients = patients.value_counts(["Map", "X", "Y"]).reset_index(name='count')
+key = ["Map", "X", "Y"]
+if args.normalise:
+    # Patients with melanoma at each site draining to selected node field
+    numerator = patients.groupby(key).size().reset_index(name='selected_node')
+    # All patients with melanoma at each site, any node field
+    denominator = original_patients.groupby(key).size().reset_index(name='any_node')
+    grouped_patients = numerator.merge(denominator, left_on=key, right_on=key, how="right").fillna({'selected_node': 0})
+    grouped_patients["count"] = grouped_patients["selected_node"] / grouped_patients["any_node"] * 100 # percentage
+else:
+    grouped_patients = patients.groupby(key).size().reset_index(name='count')
 
 # Merge all site information
 start = time.time()
-merged = grouped_patients.merge(all_sites, left_on=["Map", "X", "Y"], right_on=["Body map #", "X", "Y"], how="right").fillna({'count': 0})
+merged = grouped_patients.merge(all_sites, left_on=key, right_on=["Body map #", "X", "Y"], how="right").fillna({'count': 0})
 logging.info(f"Data merged in {round(time.time() - start, 4)}s")
 
 merged.index = merged.index + 1
