@@ -49,11 +49,11 @@ if args.filter:
         exit(1)
     logging.info(f"After applying filter {args.filter}, reduced dataset size from {original_length} to {len(patients)}")
 
-patients["count"] = 1.0
+grouped_patients = patients.value_counts(["Map", "X", "Y"]).reset_index(name='count')
 
 # Merge all site information
 start = time.time()
-merged = patients.merge(all_sites, left_on=["Map", "X", "Y"], right_on=["Body map #", "X", "Y"], how="right").fillna({'count': 0})
+merged = grouped_patients.merge(all_sites, left_on=["Map", "X", "Y"], right_on=["Body map #", "X", "Y"], how="right").fillna({'count': 0})
 logging.info(f"Data merged in {round(time.time() - start, 4)}s")
 
 merged.index = merged.index + 1
