@@ -105,7 +105,16 @@ def save(merged, filename = args.outfile):
 if args.filter:
     filters = args.filter.split("&")
     for filter in filters:
-        k, v = filter.split("=")
+        if ">" in filter:
+            filtertype = ">"
+            k, v = filter.split(">")
+        else:
+            filtertype = "="
+            k, v = filter.split("=")
+        try:
+            v = float(v)
+        except ValueError:
+            pass
         original_length = len(patients)
         try:
             if k == "Node Fields":
@@ -114,7 +123,10 @@ if args.filter:
                     logging.info(f"After applying filter Node Fields={nodeField}, reduced dataset size from {original_length} to {len(patients)}")
                     save(calc(), nodeField)
             else:
-                patients = patients[patients[k] == v]
+                if filtertype == ">":
+                    patients = patients[patients[k] > v]
+                else:
+                    patients = patients[patients[k] == v]
                 logging.info(f"After applying filter {filter}, reduced dataset size from {original_length} to {len(patients)}")
                 save(calc())
         except KeyError:
