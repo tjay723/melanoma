@@ -58,9 +58,10 @@ def save(merged, filename = args.outfile):
     filename = Path(filename).with_suffix(".ipdata")
     with open(filename, "w") as file:
         file.write('Data file\n')
+        formatted = merged.copy()
         for col in cols:
-            merged[col] = merged[col].apply(lambda x: '%.4f' % x)
-        merged[["cmgui_x", "cmgui_y", "cmgui_z", "count", "scale", "scale", "scale", "scale"]].to_csv(file, header=False, sep='\t')
+            formatted[col] = formatted[col].apply(lambda x: '%.4f' % x)
+        formatted[["cmgui_x", "cmgui_y", "cmgui_z", "count", "scale", "scale", "scale", "scale"]].to_csv(file, header=False, sep='\t')
         logging.info(f"{filename} written")
     filename = Path(filename).with_suffix(".exdata")
     with open(filename, "w") as file:
