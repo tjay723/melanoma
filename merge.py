@@ -63,7 +63,10 @@ def save(merged, filename = args.outfile):
         formatted = merged.copy()
         for col in cols:
             formatted[col] = formatted[col].apply(lambda x: '%.4f' % x)
-        formatted[["cmgui_x", "cmgui_y", "cmgui_z", "count", "scale", "scale", "scale", "scale"]].to_csv(file, header=False, sep='\t')
+        if args.normalise:
+            formatted[["cmgui_x", "cmgui_y", "cmgui_z", "count", "scale", "scale", "scale", "selected_node"]].to_csv(file, header=False, sep='\t')
+        else:
+            formatted[["cmgui_x", "cmgui_y", "cmgui_z", "count", "scale", "scale", "scale", "scale"]].to_csv(file, header=False, sep='\t')
         logging.info(f"{filename} written")
     filename = Path(filename).with_suffix(".exdata")
     with open(filename, "w") as file:
