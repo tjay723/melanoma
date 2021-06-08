@@ -55,6 +55,8 @@ def calc():
 def save(merged, filename = args.outfile):
     cols = ["cmgui_x", "cmgui_y", "cmgui_z", "count"]
     # Write out
+    if args.normalise:
+        filename += "_normalised"
     filename = Path(filename).with_suffix(".ipdata")
     with open(filename, "w") as file:
         file.write('Data file\n')
@@ -88,13 +90,14 @@ if args.filter:
             if k == "Node Fields":
                 for nodeField in v.split(","):
                     patients = original_patients[original_patients[k].str.contains(rf'\b{nodeField}\b', na=False)]
+                    logging.info(f"After applying filter Node Fields={nodeField}, reduced dataset size from {original_length} to {len(patients)}")
                     save(calc(), nodeField)
             else:
                 patients = patients[patients[k] == v]
+                logging.info(f"After applying filter {filter}, reduced dataset size from {original_length} to {len(patients)}")
                 save(calc())
         except KeyError:
             logging.error(f"Column {k} not known: possible columns to choose from: {sorted(patients.columns.tolist())}")
             exit(1)
-        logging.info(f"After applying filter {filter}, reduced dataset size from {original_length} to {len(patients)}")
 else:
     save(calc())
