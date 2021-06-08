@@ -46,6 +46,8 @@ def calc():
     # Merge all site information
     start = time.time()
     merged = grouped_patients.merge(all_sites, left_on=key, right_on=["Body map #", "X", "Y"], how="right").fillna({'count': 0})
+    if args.normalise:
+        merged = merged.fillna({'selected_node': 0})
     logging.info(f"Data merged in {round(time.time() - start, 4)}s")
 
     merged.index = merged.index + 1
@@ -70,18 +72,34 @@ def save(merged, filename = args.outfile):
         logging.info(f"{filename} written")
     filename = Path(filename).with_suffix(".exdata")
     with open(filename, "w") as file:
-        file.write(" Group name: data\n" +
-                        " #Fields=2\n" +
-                        " 1) coordinates, coordinate, rectangular cartesian, #Components=3\n" +
-                        "   x.  Value index= 1, #Derivatives=0\n" +
-                        "   y.  Value index= 2, #Derivatives=0\n" +
-                        "   z.  Value index= 3, #Derivatives=0\n" +
-                        " 2) count, field, rectangular cartesian, #Components=1\n" +
-                        "   1.  Value index= 4, #Derivatives=0\n")
-        for col in cols:
-            merged[col] = merged[col].apply(lambda x: '%.5e' % x)
-        for index, row in merged.iterrows():
-            file.write(f" Node:  {index}\n    {row['cmgui_x']}  {row['cmgui_y']}  {row['cmgui_z']}\n    {row['count']}\n")
+        if args.normalise:
+            file.write(f" Group name: {filename}\n" +
+                            " #Fields=3\n" +
+                            " 1) coordinates, coordinate, rectangular cartesian, #Components=3\n" +
+                            "   x.  Value index= 1, #Derivatives=0\n" +
+                            "   y.  Value index= 2, #Derivatives=0\n" +
+                            "   z.  Value index= 3, #Derivatives=0\n" +
+                            " 2) normalised_count, field, rectangular cartesian, #Components=1\n" +
+                            "   1.  Value index= 4, #Derivatives=0\n" +
+                            " 3) frequency, field, rectangular cartesian, #Components=1\n" +
+                            "   2. Value index= 5, #Derivatives=0\n")
+            for col in cols + ["selected_node"]:
+                merged[col] = merged[col].apply(lambda x: '%.5e' % x)
+            for index, row in merged.iterrows():
+                file.write(f" Node:  {index}\n    {row['cmgui_x']}  {row['cmgui_y']}  {row['cmgui_z']}\n    {row['count']}  {row['selected_node']}\n")
+        else:
+            file.write(" Group name: data\n" +
+                            " #Fields=2\n" +
+                            " 1) coordinates, coordinate, rectangular cartesian, #Components=3\n" +
+                            "   x.  Value index= 1, #Derivatives=0\n" +
+                            "   y.  Value index= 2, #Derivatives=0\n" +
+                            "   z.  Value index= 3, #Derivatives=0\n" +
+                            " 2) count, field, rectangular cartesian, #Components=1\n" +
+                            "   1.  Value index= 4, #Derivatives=0\n")
+            for col in cols:
+                merged[col] = merged[col].apply(lambda x: '%.5e' % x)
+            for index, row in merged.iterrows():
+                file.write(f" Node:  {index}\n    {row['cmgui_x']}  {row['cmgui_y']}  {row['cmgui_z']}\n    {row['count']}\n")
         logging.info(f"{filename} written")
 
 if args.filter:
