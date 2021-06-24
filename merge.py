@@ -15,7 +15,11 @@ parser = argparse.ArgumentParser(description="Melanoma data tool")
 parser.add_argument('-f', '--filter', help='Which columns and values to filter by')
 parser.add_argument('-o', '--outfile', help='Output file', default="out.ipdata")
 parser.add_argument('-n', '--normalise', help='Calculate normalised frequency as percentage (divide number of patients with drainage to specified node field by total number of patients at site)', action='store_true')
+parser.add_argument('-anf', '--all_node_fields', help='Generate output files for each node field', action='store_true')
 args = parser.parse_args()
+
+if args.all_node_fields:
+    args.filter='Node Fields=ro,rprea,rposta,rc1,rc2,rc3,rc4,rc5,rsc,sm,ra,repit,ric,rtis,rip,rim,rcm,inc,pv,pa,rp,um,rg,rpop,in,lo,lprea,lposta,lc1,lc2,lc3,lc4,lc5,lsc,la,lepit,lic,ltis,lip,lim,lcm,lg,lpop'
 
 # Load data
 all_sites = pd.read_excel("data/all_melanoma_sites.xlsx")
@@ -45,7 +49,7 @@ def calc():
 
     # Merge all site information
     start = time.time()
-    merged = grouped_patients.merge(all_sites, left_on=key, right_on=["Body map #", "X", "Y"], how="right").fillna({'count': 0})
+    merged = grouped_patients.merge(all_sites, left_on=key, right_on=["Body map #", "X", "Y"], how="left").fillna({'count': 0})
     if args.normalise:
         merged = merged.fillna({'selected_node': 0})
     logging.info(f"Data merged in {round(time.time() - start, 4)}s")
@@ -121,14 +125,16 @@ if args.filter:
                 for nodeField in v.split(","):
                     patients = original_patients[original_patients[k].str.contains(rf'\b{nodeField}\b', na=False)]
                     logging.info(f"After applying filter Node Fields={nodeField}, reduced dataset size from {original_length} to {len(patients)}")
-                    save(calc(), nodeField)
+                    if len(patients):
+                        save(calc(), nodeField)
             else:
                 if filtertype == ">":
                     patients = patients[patients[k] > v]
                 else:
                     patients = patients[patients[k] == v]
                 logging.info(f"After applying filter {filter}, reduced dataset size from {original_length} to {len(patients)}")
-                save(calc())
+                if len(patients):
+                    save(calc())
         except KeyError:
             logging.error(f"Column {k} not known: possible columns to choose from: {sorted(patients.columns.tolist())}")
             exit(1)
