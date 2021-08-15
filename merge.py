@@ -152,12 +152,10 @@ elif args.element:
     all_sites = all_sites[all_sites["Element #"] == args.element]
     logging.info(f"After applying Element # filter {args.element}, reduced dataset size from {original_length} to {len(all_sites)}")
     merged = patients.merge(all_sites, left_on=key, right_on=["Body map #", "X", "Y"], how="inner").fillna({'count': 0})
-    print(merged)
     with open("out.exdata", "w") as f:
         for i, nodeField in node_fields.iterrows():
             patients = merged[merged["Node Fields"].str.contains(rf'\b{nodeField.Code}\b', na=False)]
             if len(patients):
-                print(patients)
                 name = nodeField.Name.replace(" ", "_")
                 pct = round(len(patients) / len(merged) * 100, 1)
                 f.write(f"""Group name: {name}
