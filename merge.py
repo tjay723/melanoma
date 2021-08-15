@@ -31,6 +31,7 @@ patients = pd.read_excel("data/melanoma_sites.xlsx", index_col=0)
 cols = patients.columns[~patients.columns.str.startswith('Unnamed:')]
 patients = patients[cols]
 followup = pd.read_excel("data/mia_follow_up_data.xlsx", index_col=0)
+node_fields = pd.read_excel("data/node_fields.xlsx")
 logging.info(f"Data loaded in {round(time.time() - start, 4)}s")
 
 # Merge followup data with main patient data
@@ -54,10 +55,6 @@ def calc():
     merged = grouped_patients.merge(all_sites, left_on=key, right_on=["Body map #", "X", "Y"], how="left").fillna({'count': 0})
     if args.normalise:
         merged = merged.fillna({'selected_node': 0})
-    if args.element:
-        original_length = len(merged)
-        merged = merged[merged["Element #"] == args.element]
-        logging.info(f"After applying Element # filter {args.element}, reduced dataset size from {original_length} to {len(merged)}")
     logging.info(f"Data merged in {round(time.time() - start, 4)}s")
 
     merged.index = merged.index + 1
@@ -149,5 +146,39 @@ if args.filter:
         except KeyError:
             logging.error(f"Column {k} not known: possible columns to choose from: {sorted(patients.columns.tolist())}")
             exit(1)
+elif args.element:
+    key = ["Map", "X", "Y"]
+    original_length = len(all_sites)
+    all_sites = all_sites[all_sites["Element #"] == args.element]
+    logging.info(f"After applying Element # filter {args.element}, reduced dataset size from {original_length} to {len(all_sites)}")
+    merged = patients.merge(all_sites, left_on=key, right_on=["Body map #", "X", "Y"], how="inner").fillna({'count': 0})
+    print(merged)
+    with open("out.exdata", "w") as f:
+        for i, nodeField in node_fields.iterrows():
+            patients = merged[merged["Node Fields"].str.contains(rf'\b{nodeField.Code}\b', na=False)]
+            if len(patients):
+                print(patients)
+                name = nodeField.Name.replace(" ", "_")
+                pct = round(len(patients) / len(merged) * 100, 1)
+                f.write(f"""Group name: {name}
+ #Fields=5
+ 1) count_element_{args.element}, field, rectangular cartesian, #Components=1
+  count. Value index=1, #Derivatives=0, #Versions=1
+ 2) percent_element_{args.element}, field, string, #Components=1
+  percent. Value index=2, #Derivatives=0, #Versions=1
+ 3) percent_value_{args.element}, field, rectangular cartesian, #Components=1
+  value. Value index=3, #Derivatives=0, #Versions=1
+ 4) nodefield_element_{args.element}, field, string, #Components=1
+  name. Value index=4, #Derivatives=0, #Versions=1
+ 5) code_element_{args.element}, field, string, #Components=1
+  code. Value index=5, #Derivatives=0, #Versions=1
+ Node: {i}
+  {len(patients)}
+  {pct}%
+  {pct}
+  {name}
+  .{nodeField.Code}
+""")
+        logging.info(f"out.exdata written")
 else:
     save(calc())
