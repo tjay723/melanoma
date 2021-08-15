@@ -16,10 +16,11 @@ parser.add_argument('-f', '--filter', help='Which columns and values to filter b
 parser.add_argument('-o', '--outfile', help='Output file', default="out.ipdata")
 parser.add_argument('-n', '--normalise', help='Calculate normalised frequency as percentage (divide number of patients with drainage to specified node field by total number of patients at site)', action='store_true')
 parser.add_argument('-anf', '--all_node_fields', help='Generate output files for each node field', action='store_true')
+parser.add_argument('-c', '--cluster', help='Only output one exdata and one ipdata file, regardless of number of node fields', action='store_true')
 args = parser.parse_args()
 
 if args.all_node_fields:
-    args.filter='Node Fields=ro,rprea,rposta,rc1,rc2,rc3,rc4,rc5,rsc,sm,ra,repit,ric,rtis,rip,rim,rcm,inc,pv,pa,rp,um,rg,rpop,in,lo,lprea,lposta,lc1,lc2,lc3,lc4,lc5,lsc,la,lepit,lic,ltis,lip,lim,lcm,lg,lpop'
+    args.filter='Node Fields=ro,rprea,rposta,rc1,rc2,rc3,rc4,rc5,rsc,sm,ra,repit,ric,rtis,rip,rim,rcm,inc,pv,pa,rp,um,rg,rpop,in,lo,lprea,lposta,lc1,lc2,lc3,lc4,lc5,lsc,la,lepit,lic,ltis,lip,lim,lcm,lg,lpop,li,ri'
 
 # Load data
 all_sites = pd.read_excel("data/all_melanoma_sites.xlsx")
@@ -122,11 +123,16 @@ if args.filter:
         original_length = len(patients)
         try:
             if k == "Node Fields":
-                for nodeField in v.split(","):
-                    patients = original_patients[original_patients[k].str.contains(rf'\b{nodeField}\b', na=False)]
-                    logging.info(f"After applying filter Node Fields={nodeField}, reduced dataset size from {original_length} to {len(patients)}")
-                    if len(patients):
-                        save(calc(), nodeField)
+                if args.cluster:
+                    patients = original_patients[original_patients[k].str.contains(rf'\b{v.replace(",", "|")}\b', na=False)]
+                    logging.info(f"After applying filter {v}, reduced dataset size from {original_length} to {len(patients)}")
+                    save(calc())
+                else:
+                    for nodeField in v.split(","):
+                        patients = original_patients[original_patients[k].str.contains(rf'\b{nodeField}\b', na=False)]
+                        logging.info(f"After applying filter Node Fields={nodeField}, reduced dataset size from {original_length} to {len(patients)}")
+                        if len(patients):
+                            save(calc(), nodeField)
             else:
                 if filtertype == ">":
                     patients = patients[patients[k] > v]
