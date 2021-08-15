@@ -13,6 +13,7 @@ start = time.time()
 
 parser = argparse.ArgumentParser(description="Melanoma data tool")
 parser.add_argument('-f', '--filter', help='Which columns and values to filter by')
+parser.add_argument('-e', '--element', type=int, help='Which Element # to filter by')
 parser.add_argument('-o', '--outfile', help='Output file', default="out.ipdata")
 parser.add_argument('-n', '--normalise', help='Calculate normalised frequency as percentage (divide number of patients with drainage to specified node field by total number of patients at site)', action='store_true')
 parser.add_argument('-anf', '--all_node_fields', help='Generate output files for each node field', action='store_true')
@@ -53,6 +54,10 @@ def calc():
     merged = grouped_patients.merge(all_sites, left_on=key, right_on=["Body map #", "X", "Y"], how="left").fillna({'count': 0})
     if args.normalise:
         merged = merged.fillna({'selected_node': 0})
+    if args.element:
+        original_length = len(merged)
+        merged = merged[merged["Element #"] == args.element]
+        logging.info(f"After applying Element # filter {args.element}, reduced dataset size from {original_length} to {len(merged)}")
     logging.info(f"Data merged in {round(time.time() - start, 4)}s")
 
     merged.index = merged.index + 1
