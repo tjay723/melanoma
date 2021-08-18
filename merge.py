@@ -13,7 +13,7 @@ start = time.time()
 
 parser = argparse.ArgumentParser(description="Melanoma data tool")
 parser.add_argument('-f', '--filter', help='Which columns and values to filter by')
-parser.add_argument('-e', '--element', type=int, help='Which Element # to filter by')
+parser.add_argument('-e', '--element', help='Which Element # to filter by. Specify a range like so: 1-1000')
 parser.add_argument('-o', '--outfile', help='Output file', default="out.ipdata")
 parser.add_argument('-n', '--normalise', help='Calculate normalised frequency as percentage (divide number of patients with drainage to specified node field by total number of patients at site)', action='store_true')
 parser.add_argument('-anf', '--all_node_fields', help='Generate output files for each node field', action='store_true')
@@ -148,17 +148,25 @@ if args.filter:
             exit(1)
 elif args.element:
     key = ["Map", "X", "Y"]
-    original_length = len(all_sites)
-    all_sites = all_sites[all_sites["Element #"] == args.element]
-    logging.info(f"After applying Element # filter {args.element}, reduced dataset size from {original_length} to {len(all_sites)}")
-    merged = patients.merge(all_sites, left_on=key, right_on=["Body map #", "X", "Y"], how="inner").fillna({'count': 0})
-    with open("out.exdata", "w") as f:
-        for i, nodeField in node_fields.iterrows():
-            patients = merged[merged["Node Fields"].str.contains(rf'\b{nodeField.Code}\b', na=False)]
-            if len(patients):
-                name = nodeField.Name.replace(" ", "_")
-                pct = round(len(patients) / len(merged) * 100, 1)
-                f.write(f"""Group name: {name}
+    if "-" in args.element:
+        low, high = args.element.split("-")
+        elements = range(int(low), int(high) + 1)
+    else:
+        elements = [int(args.element)]
+    for element in elements:
+        filtered_sites = all_sites[all_sites["Element #"] == element]
+        logging.info(f"After applying Element # filter {element}, reduced dataset size from {len(all_sites)} to {len(filtered_sites)}")
+        merged = patients.merge(filtered_sites, left_on=key, right_on=["Body map #", "X", "Y"], how="inner").fillna({'count': 0})
+        if len(merged) == 0:
+            continue
+        filename = f"element_{element}.exdata"
+        with open(filename, "w") as f:
+            for i, nodeField in node_fields.iterrows():
+                patients = merged[merged["Node Fields"].str.contains(rf'\b{nodeField.Code}\b', na=False)]
+                if len(patients):
+                    name = nodeField.Name.replace(" ", "_")
+                    pct = round(len(patients) / len(merged) * 100, 1)
+                    f.write(f"""Group name: {name}
  #Fields=5
  1) count_element_{args.element}, field, rectangular cartesian, #Components=1
   count. Value index=1, #Derivatives=0, #Versions=1
@@ -177,6 +185,6 @@ elif args.element:
   {name}
   .{nodeField.Code}
 """)
-        logging.info(f"out.exdata written")
+            logging.info(f"{filename} written")
 else:
     save(calc())
