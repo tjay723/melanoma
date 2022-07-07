@@ -19,7 +19,7 @@ parser.add_argument('-n', '--normalise', help='Calculate normalised frequency as
 parser.add_argument('-anf', '--all_node_fields', help='Generate output files for each node field', action='store_true')
 parser.add_argument('-c', '--cluster', help='Only output one exdata and one ipdata file, regardless of number of node fields', action='store_true')
 args = parser.parse_args()
-
+#These 
 if args.all_node_fields:
     args.filter='Node Fields=ro,rprea,rposta,rc1,rc2,rc3,rc4,rc5,rsc,sm,ra,repit,ric,rtis,rip,rim,rcm,inc,pv,pa,rp,um,rg,rpop,in,lo,lprea,lposta,lc1,lc2,lc3,lc4,lc5,lsc,la,lepit,lic,ltis,lip,lim,lcm,lg,lpop,li,ri'
 
